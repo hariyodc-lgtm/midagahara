@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F7F8F4">
+<title>MIDAGAHARA FIELD NOTE</title>
+<style>
+:root{
+  --paper:#F7F8F4; --card:#FFFFFF; --ink:#17251A; --sub:#4A5A4E;
+  --moss:#2F6B40; --moss-deep:#1E4A2C; --line:#D7DFD6;
+  --amber:#9A5B00; --danger:#A62B22; --wet:#E9F1EA;
+  --r:14px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-size:16px}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;
+  background:var(--paper); color:var(--ink); line-height:1.55;
+  padding-bottom:calc(76px + env(safe-area-inset-bottom));
+  min-height:100vh;
+}
+.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.eyebrow{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.68rem;letter-spacing:.14em;color:var(--moss);font-weight:700}
+
+/* ---------- header ---------- */
+header{
+  padding:calc(14px + env(safe-area-inset-top)) 18px 10px;
+  background:var(--paper); border-bottom:1px solid var(--line);
+  position:sticky; top:0; z-index:20;
+}
+header h1{font-size:1rem;font-weight:800;letter-spacing:.02em}
+header .sub{font-size:.72rem;color:var(--sub)}
+#saveState{float:right;font-size:.72rem;color:var(--moss);font-weight:700;margin-top:2px}
+#saveState.warn{color:var(--danger)}
+
+/* ---------- layout ---------- */
+main{padding:16px 16px 24px;max-width:640px;margin:0 auto}
+.screen{display:none}
+.screen.active{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:14px}
+h2{font-size:1.02rem;font-weight:800;margin-bottom:10px}
+h3{font-size:.85rem;font-weight:800;margin:14px 0 6px}
+label{display:block;font-size:.8rem;font-weight:700;color:var(--sub);margin:12px 0 5px}
+label .req{color:var(--danger)}
+input[type=text],input[type=number],textarea,select{
+  width:100%;font-size:1.05rem;padding:12px;border:1.5px solid var(--line);
+  border-radius:10px;background:#fff;color:var(--ink);font-family:inherit;
+}
+input:focus,textarea:focus{outline:2px solid var(--moss);border-color:var(--moss)}
+textarea{min-height:96px;resize:vertical}
+
+/* ---------- buttons ---------- */
+.btn{
+  display:block;width:100%;border:none;border-radius:var(--r);
+  font-size:1.05rem;font-weight:800;padding:16px;cursor:pointer;
+  font-family:inherit;text-align:center;
+}
+.btn-primary{background:var(--moss);color:#fff}
+.btn-primary:active{background:var(--moss-deep)}
+.btn-ghost{background:#fff;color:var(--moss);border:1.5px solid var(--moss)}
+.btn-danger{background:#fff;color:var(--danger);border:1.5px solid var(--danger)}
+.btn-sub{background:var(--wet);color:var(--moss-deep)}
+.btn-big{font-size:1.3rem;padding:24px 16px;letter-spacing:.03em}
+.btn+.btn{margin-top:10px}
+.btn:disabled{opacity:.4}
+
+/* ---------- chips ---------- */
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{
+  border:1.5px solid var(--line);background:#fff;color:var(--ink);
+  border-radius:999px;padding:10px 15px;font-size:.95rem;font-weight:600;
+  cursor:pointer;font-family:inherit;min-height:44px;
+}
+.chip.on{background:var(--moss);border-color:var(--moss);color:#fff}
+.chip.unknown{border-color:var(--amber);color:var(--amber);font-weight:800}
+.chip.unknown.on{background:var(--amber);color:#fff}
+
+/* ---------- point bar ---------- */
+.pointbar{
+  display:flex;gap:8px;overflow-x:auto;padding:4px 2px 10px;
+  -webkit-overflow-scrolling:touch;scrollbar-width:none;
+}
+.pointbar::-webkit-scrollbar{display:none}
+.pt{
+  flex:0 0 auto;border:1.5px solid var(--line);background:#fff;border-radius:12px;
+  padding:8px 14px;font-weight:700;font-size:.92rem;cursor:pointer;font-family:inherit;
+  min-height:52px;text-align:left;
+}
+.pt small{display:block;font-weight:600;font-size:.68rem;color:var(--sub)}
+.pt.on{background:var(--moss);border-color:var(--moss);color:#fff}
+.pt.on small{color:#D8E8DC}
+
+/* ---------- stats ---------- */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;text-align:center}
+.stat{background:var(--wet);border-radius:10px;padding:10px 4px}
+.stat b{display:block;font-size:1.35rem;font-family:ui-monospace,Menlo,monospace}
+.stat span{font-size:.66rem;color:var(--sub);font-weight:700}
+
+/* ---------- observation cards ---------- */
+.obs{display:flex;gap:12px;align-items:flex-start}
+.obs .thumb{
+  flex:0 0 72px;width:72px;height:72px;border-radius:10px;background:var(--wet);
+  object-fit:cover;display:flex;align-items:center;justify-content:center;
+  font-size:.6rem;color:var(--sub);text-align:center;overflow:hidden;
+}
+.obs img.thumb{object-fit:cover}
+.obs .body{flex:1;min-width:0}
+.obs .name{font-weight:800;font-size:1rem}
+.obs .name.unk{color:var(--amber)}
+.obs .meta{font-size:.78rem;color:var(--sub);margin:2px 0}
+.obs .note{font-size:.85rem;background:var(--paper);border-radius:8px;padding:6px 9px;margin-top:5px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---------- overlay form ---------- */
+.overlay{
+  position:fixed;inset:0;background:var(--paper);z-index:50;display:none;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;
+}
+.overlay.active{display:block}
+.overlay .inner{max-width:640px;margin:0 auto;padding:16px 16px 120px}
+.overlay-head{
+  position:sticky;top:0;background:var(--paper);z-index:5;
+  padding:calc(12px + env(safe-area-inset-top)) 0 10px;
+  display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--line);
+}
+.overlay-head b{font-size:1rem}
+.overlay-foot{
+  position:fixed;left:0;right:0;bottom:0;background:var(--paper);
+  border-top:1px solid var(--line);padding:12px 16px calc(12px + env(safe-area-inset-bottom));z-index:6;
+}
+.overlay-foot .inner2{max-width:640px;margin:0 auto;display:flex;gap:10px}
+.overlay-foot .btn{margin:0}
+.closeX{background:none;border:none;font-size:1rem;font-weight:700;color:var(--sub);padding:8px;cursor:pointer;font-family:inherit}
+
+/* ---------- photos ---------- */
+.photorow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.photorow img{width:84px;height:84px;object-fit:cover;border-radius:10px;border:1px solid var(--line)}
+.addphoto{
+  width:84px;height:84px;border:2px dashed var(--moss);border-radius:10px;background:#fff;
+  color:var(--moss);font-size:.72rem;font-weight:700;cursor:pointer;font-family:inherit;
+}
+
+/* ---------- bottom nav ---------- */
+nav{
+  position:fixed;left:0;right:0;bottom:0;z-index:40;
+  background:#fff;border-top:1px solid var(--line);
+  display:flex;padding-bottom:env(safe-area-inset-bottom);
+}
+nav button{
+  flex:1;background:none;border:none;padding:10px 0 8px;cursor:pointer;
+  font-family:inherit;font-size:.72rem;font-weight:700;color:var(--sub);
+}
+nav button .ic{display:block;font-size:1.25rem;line-height:1.2}
+nav button.on{color:var(--moss)}
+
+/* ---------- misc ---------- */
+.hint{font-size:.76rem;color:var(--sub);margin-top:6px}
+.warnbox{background:#FDF3E7;border:1px solid #E8CBA4;border-radius:10px;padding:10px 12px;font-size:.82rem;color:var(--amber);margin-top:10px}
+.undo{
+  position:fixed;left:16px;right:16px;bottom:calc(84px + env(safe-area-inset-bottom));
+  background:var(--ink);color:#fff;border-radius:12px;padding:12px 16px;z-index:60;
+  display:none;justify-content:space-between;align-items:center;font-size:.9rem;
+}
+.undo button{background:none;border:none;color:#8FD9A5;font-weight:800;font-size:.95rem;cursor:pointer;font-family:inherit;padding:4px 8px}
+#rawJson{font-family:ui-monospace,Menlo,monospace;font-size:.72rem;min-height:220px}
+.divider{border:none;border-top:1px solid var(--line);margin:14px 0}
+.timechip{background:var(--wet);border-radius:8px;padding:8px 12px;font-size:.82rem;margin-top:8px}
+</style>
+</head>
+<body>
+
+<header>
+  <span id="saveState">✓ 保存済み</span>
+  <h1>MIDAGAHARA FIELD NOTE</h1>
+  <div class="sub">弥陀ヶ原 高山植物フィールド研究</div>
+</header>
+
+<main>
+
+<!-- ============ HOME ============ -->
+<section class="screen active" id="scr-home">
+  <div class="card" id="homeSessionCard"></div>
+
+  <div class="card">
+    <div class="eyebrow">FIELD RULES</div>
+    <div style="font-size:.85rem;margin-top:6px;line-height:1.9">
+      植物を採らない ・ 花を触らない ・ 木道から外れない ・ 植物を踏まない ・ 撮影のために植物を動かさない
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="eyebrow">DATA SAFETY</div>
+    <div class="hint" id="backupInfo" style="margin-top:6px">最終バックアップ：まだありません</div>
+    <button class="btn btn-sub" style="margin-top:10px" onclick="go('data')">バックアップ・生データ画面へ</button>
+  </div>
+</section>
+
+<!-- ============ RECORD ============ -->
+<section class="screen" id="scr-rec">
+  <div id="noSessionMsg" class="card" style="display:none">
+    <b>観察セッションが開始されていません。</b>
+    <div class="hint">HOME画面から「観察を開始する」を押してください。</div>
+    <button class="btn btn-primary" style="margin-top:12px" onclick="go('home')">HOMEへ</button>
+  </div>
+
+  <div id="recBody">
+    <div class="eyebrow">現在の観察地点（タップで切替）</div>
+    <div class="pointbar" id="pointBar"></div>
+
+    <button class="btn btn-primary btn-big" onclick="openObsForm()">＋ 植物を記録</button>
+    <button class="btn btn-ghost" style="margin-top:10px" onclick="openZukan(false)">ミニ図鑑 ― 特徴を確認する</button>
+
+    <div class="card" style="margin-top:14px">
+      <div class="stats" id="recStats"></div>
+      <div class="timechip mono" id="elapsed"></div>
+    </div>
+
+    <button class="btn btn-danger" onclick="endSession()">本日の観察を終了</button>
+  </div>
+</section>
+
+<!-- ============ LIST ============ -->
+<section class="screen" id="scr-list">
+  <h2 style="margin-bottom:10px">観察一覧</h2>
+  <div id="obsList"></div>
+</section>
+
+<!-- ============ DATA ============ -->
+<section class="screen" id="scr-data">
+  <div class="card">
+    <h2>バックアップ</h2>
+    <div class="hint" id="backupInfo2">最終バックアップ：まだありません</div>
+    <button class="btn btn-primary" style="margin-top:12px" onclick="exportBackup()">研究データを書き出す（JSON）</button>
+    <div class="hint">iOSの共有シートが開いたら「"ファイル"に保存」を選んでください。</div>
+  </div>
+
+  <div class="card">
+    <h2>生データ（救出用）</h2>
+    <div class="hint" style="margin-bottom:8px">アプリの画面が壊れても、ここの文字を全部コピーしてメモやメールに貼れば、研究データは失われません。</div>
+    <button class="btn btn-ghost" onclick="showRaw()">生データを表示する</button>
+    <textarea id="rawJson" readonly style="display:none;margin-top:10px"></textarea>
+    <button class="btn btn-sub" id="copyRawBtn" style="display:none" onclick="copyRaw()">全部コピーする</button>
+  </div>
+
+  <div class="card">
+    <h2>写真について</h2>
+    <div style="font-size:.85rem;line-height:1.8">
+      撮影は<b>iPhoneの標準カメラ</b>で行ってください。原本はカメラロールに残ります。<br>
+      このアプリに添付するのは縮小版（目印用）だけです。<br>
+      各記録の<b>記録時刻</b>と写真の撮影時刻を、帰宅後に照合します。
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ============ SESSION FORM OVERLAY ============ -->
+<div class="overlay" id="ovl-session">
+  <div class="inner">
+    <div class="overlay-head">
+      <b>観察セッションの開始</b>
+      <button class="closeX" onclick="closeOvl('ovl-session')">閉じる</button>
+    </div>
+    <label>日付・開始時刻（自動）</label>
+    <div class="timechip mono" id="sessNow"></div>
+    <label>天候 <span class="req">★</span></label>
+    <div class="chips" id="sessWeather"></div>
+    <label>気温（℃・分かれば）</label>
+    <input type="number" id="sessTemp" inputmode="decimal" placeholder="例：18">
+    <label>観察場所</label>
+    <input type="text" id="sessLoc" value="弥陀ヶ原">
+    <label>同行者（任意）</label>
+    <input type="text" id="sessWho" placeholder="例：父">
+    <label>メモ（任意）</label>
+    <textarea id="sessNote" placeholder="出発時に気づいたことなど"></textarea>
+  </div>
+  <div class="overlay-foot"><div class="inner2">
+    <button class="btn btn-primary" onclick="saveSession()">観察を開始する</button>
+  </div></div>
+</div>
+
+<!-- ============ OBSERVATION FORM OVERLAY ============ -->
+<div class="overlay" id="ovl-obs">
+  <div class="inner">
+    <div class="overlay-head">
+      <b id="obsFormTitle">植物を記録</b>
+      <button class="closeX" onclick="closeObsForm()">閉じる</button>
+    </div>
+
+    <label>観察地点 <span class="req">★</span></label>
+    <div class="chips" id="fPoint"></div>
+
+    <label>植物名 <span class="req">★</span>（分からなければUNKNOWN）</label>
+    <div class="hint" style="margin-bottom:6px">このリストは入力の補助です。正式な同定は帰宅後に図鑑で行います。迷ったらUNKNOWNで大丈夫。</div>
+    <button type="button" class="btn btn-sub" style="padding:11px;margin-bottom:10px" onclick="openZukan(true)">特徴を見て選ぶ（ミニ図鑑）</button>
+    <div class="chips" id="fPlant"></div>
+    <input type="text" id="fPlantFree" placeholder="リストにない名前を書く" style="margin-top:8px">
+
+    <label>花の色 <span class="req">★</span></label>
+    <div class="chips" id="fColor"></div>
+
+    <label>草丈（cm）</label>
+    <input type="number" id="fHeight" inputmode="decimal" placeholder="例：8">
+    <div class="chips" id="fHeightMethod" style="margin-top:8px"></div>
+
+    <label>花の状態</label>
+    <div class="chips" id="fState"></div>
+
+    <label>生え方</label>
+    <div class="chips" id="fGrowth"></div>
+
+    <label>地面の状態</label>
+    <div class="chips" id="fGround"></div>
+
+    <label>周囲の環境</label>
+    <div class="chips" id="fEnv"></div>
+
+    <label>自分の目で見て気づいたこと <span class="req">★</span></label>
+    <textarea id="fNote" placeholder="例：写真で見たときよりかなり小さかった／水がたまっている場所の近くに多かった"></textarea>
+    <div class="hint">キーボードのマイク🎤で音声入力もできます。ここに書いた文はそのまま研究の材料になります。</div>
+
+    <label>写真（縮小版・目印用）</label>
+    <div class="photorow" id="fPhotos">
+      <button class="addphoto" onclick="document.getElementById('photoInput').click()">＋ 写真を<br>添付</button>
+    </div>
+    <input type="file" id="photoInput" accept="image/*" multiple style="display:none">
+    <div class="warnbox">撮影そのものは<b>標準カメラアプリ</b>で。撮ったらすぐ記録、記録したらすぐ撮影。</div>
+    <div class="timechip mono" id="obsTimeInfo"></div>
+  </div>
+  <div class="overlay-foot"><div class="inner2">
+    <button class="btn btn-primary" onclick="saveObs()">この記録を保存</button>
+  </div></div>
+</div>
+
+<!-- ============ SUMMARY OVERLAY ============ -->
+<div class="overlay" id="ovl-summary">
+  <div class="inner">
+    <div class="overlay-head"><b>FIELD SUMMARY</b>
+      <button class="closeX" onclick="closeOvl('ovl-summary')">閉じる</button></div>
+    <div class="card" id="summaryBody" style="margin-top:14px"></div>
+    <button class="btn btn-primary" onclick="exportBackup()">いますぐバックアップを書き出す</button>
+    <button class="btn btn-ghost" onclick="closeOvl('ovl-summary')">閉じる</button>
+  </div>
+</div>
+
+<!-- ============ ZUKAN OVERLAY ============ -->
+<div class="overlay" id="ovl-zukan" style="z-index:55">
+  <div class="inner">
+    <div class="overlay-head">
+      <b>ミニ図鑑（特徴の目安）</b>
+      <button class="closeX" onclick="closeOvl('ovl-zukan')">閉じる</button>
+    </div>
+    <div class="warnbox" style="margin-top:10px">これはAIが作った参考情報です。正式な名前の確定（同定）は、帰宅後に図鑑や信頼できる資料で自分で確認します。現地では「たぶんこれ」でOK、迷ったらUNKNOWN。</div>
+    <div id="zukanList" style="margin-top:12px"></div>
+  </div>
+</div>
+
+<div class="undo" id="undoBar">
+  <span>記録を削除しました</span>
+  <button onclick="undoDelete()">元に戻す</button>
+</div>
+
+<nav>
+  <button id="nav-home" class="on" onclick="go('home')"><span class="ic">⌂</span>HOME</button>
+  <button id="nav-rec" onclick="go('rec')"><span class="ic">＋</span>記録</button>
+  <button id="nav-list" onclick="go('list')"><span class="ic">☰</span>一覧</button>
+  <button id="nav-data" onclick="go('data')"><span class="ic">⇩</span>データ</button>
+</nav>
+
+<script>
+"use strict";
+/* ================= constants ================= */
+const LS_KEY = "mfn_v1";
+const PLANTS = ["タテヤマリンドウ","ミヤマリンドウ","オヤマリンドウ","イワショウブ","キンコウカ","ワタスゲ","イワイチョウ","チングルマ","コバイケイソウ","ハクサンフウロ","ヨツバシオガマ","ミヤマアキノキリンソウ","ウサギギク","ゴゼンタチバナ","モミジカラマツ","シラネニンジン","ネバリノギラン","アオノツガザクラ","ミヤマホツツジ","エゾシオガマ"];
+/* ミニ図鑑データ（AI作成の参考情報。正式な同定は帰宅後に図鑑・信頼できる資料で確認すること） */
+const PLANT_INFO = {
+"タテヤマリンドウ":{fam:"リンドウ科",color:"淡い青紫（白っぽいことも）",h:"5〜15cm",season:"6〜8月",env:"湿原・木道沿い",point:"とても小さいリンドウ。晴れた時だけ花が開き、くもりや雨だと閉じる。花の内側に細かい斑点。",sim:"ミヤマリンドウ（より濃い青で花がまとまる）"},
+"ミヤマリンドウ":{fam:"リンドウ科",color:"濃い青紫",h:"5〜10cm",season:"7〜8月",env:"湿った草地",point:"茎の先に花が数個まとまって咲く。タテヤマリンドウより青が濃い。",sim:"タテヤマリンドウ（淡い色・花は1個ずつ）"},
+"オヤマリンドウ":{fam:"リンドウ科",color:"青紫",h:"20〜40cm",season:"8〜9月",env:"草地",point:"背が高いリンドウ。花は茎の先に集まり、あまり大きく開かない。",sim:"エゾオヤマリンドウ"},
+"イワショウブ":{fam:"チシマゼキショウ科",color:"白（実になると赤みがかる）",h:"20〜40cm",season:"8〜9月",env:"湿原",point:"細い茎の先に白い小さな花が穂のように並ぶ。茎を触るとベタベタする。",sim:"シラネニンジン（花が傘のような形に開く）"},
+"キンコウカ":{fam:"キンコウカ科",color:"黄色",h:"20〜40cm",season:"7〜8月",env:"湿原",point:"星形の黄色い花が穂になって咲く。葉は細くて剣のような形。群生しやすい。",sim:"ミヤマアキノキリンソウ（キク科で花の形が違う）"},
+"ワタスゲ":{fam:"カヤツリグサ科",color:"白い綿毛（花の後）",h:"30〜50cm",season:"綿毛は6〜8月",env:"湿原",point:"白いふわふわの綿毛の玉。花ではなく実の毛。風に揺れる。",sim:"チングルマの綿毛（羽毛状で形が違う）"},
+"イワイチョウ":{fam:"ミツガシワ科",color:"白",h:"15〜30cm",season:"7〜8月",env:"湿原",point:"葉が丸くてイチョウの葉に似る。白い花びらは5つに裂け、フチが波打つ。",sim:"—"},
+"チングルマ":{fam:"バラ科（草ではなく小さな木）",color:"白（8月は綿毛のことが多い）",h:"約10cm",season:"花6〜7月・綿毛7〜8月",env:"雪が残る場所の近く・湿った草地",point:"花の後、羽毛のような実が風車状につく。8月中旬は綿毛の姿を探すとよい。",sim:"ワタスゲ（綿毛が丸い玉状）"},
+"コバイケイソウ":{fam:"シュロソウ科",color:"白",h:"50〜100cm",season:"7〜8月",env:"湿った草地",point:"ひときわ大型。白い花が円すい状に集まる。葉も大きい。咲かない年もある。",sim:"—"},
+"ハクサンフウロ":{fam:"フウロソウ科",color:"ピンク",h:"30〜50cm",season:"7〜8月",env:"草地",point:"5枚の花びらのピンクの花。葉は手のひら状に深く切れ込む。",sim:"—"},
+"ヨツバシオガマ":{fam:"ハマウツボ科",color:"紅紫",h:"20〜40cm",season:"7〜8月",env:"草地",point:"葉が茎に4枚ずつ輪になってつく。花は鳥のくちばしのような形。",sim:"エゾシオガマ（花が淡い黄白色）"},
+"ミヤマアキノキリンソウ":{fam:"キク科",color:"黄色",h:"20〜40cm",season:"8〜9月",env:"草地",point:"小さな黄色い花が茎の先にぎゅっと集まる。8月中旬に見やすい。",sim:"キンコウカ（花が星形で穂になる）"},
+"ウサギギク":{fam:"キク科",color:"濃い黄色",h:"20〜30cm",season:"7〜8月",env:"草地",point:"大きめの黄色い花が1つ。向かい合った2枚の葉がウサギの耳のよう。",sim:"—"},
+"ゴゼンタチバナ":{fam:"ミズキ科",color:"白（秋は赤い実）",h:"5〜15cm",season:"6〜8月",env:"林の縁・木道脇",point:"白い花びらに見えるのは4枚の苞。葉が6枚輪になった株に花がつく。",sim:"—"},
+"モミジカラマツ":{fam:"キンポウゲ科",color:"白",h:"40〜60cm",season:"7〜8月",env:"湿った草地",point:"葉がモミジの形。糸のような白い花が集まる。",sim:"カラマツソウ（葉の形が違う）"},
+"シラネニンジン":{fam:"セリ科",color:"白",h:"20〜40cm",season:"7〜8月",env:"草地・湿原",point:"白い小花が傘を開いたように咲く。葉はニンジンの葉のように細かい。",sim:"イワショウブ（花が穂状に並ぶ）"},
+"ネバリノギラン":{fam:"キンコウカ科",color:"黄褐色（地味）",h:"20〜30cm",season:"7〜8月",env:"草地・湿原",point:"つぼ形の地味な花が穂につく。花や茎を触るとねばる。見落としやすいので注意。",sim:"ノギラン（ねばらない）"},
+"アオノツガザクラ":{fam:"ツツジ科（小さな木）",color:"淡い黄緑",h:"10〜20cm",season:"7〜8月",env:"雪が残る場所の近く",point:"つぼ形の花が下向きにつく。葉は針葉樹のように細かい。",sim:"ツガザクラ（花が白〜ピンク）"},
+"ミヤマホツツジ":{fam:"ツツジ科（小さな木）",color:"白〜うすいピンク",h:"10〜30cm",season:"7〜8月",env:"草地・低木のそば",point:"花の中央のめしべがゾウの鼻のように上へ曲がるのが最大の特徴。",sim:"ホツツジ（めしべがまっすぐ）"},
+"エゾシオガマ":{fam:"ハマウツボ科",color:"淡い黄白色",h:"20〜40cm",season:"7〜8月",env:"草地",point:"ねじれたような花が横向きにつく。",sim:"ヨツバシオガマ（花が紅紫色）"}
+};
+const COLORS = ["白","黄色","青","紫","ピンク","赤","緑","その他","花なし","判断できない"];
+const STATES = ["つぼみ","開花中","終わりかけ","綿毛","実","花なし","その他"];
+const GROWTH = ["1株","数株","小さな群落","広く群生","判断できない"];
+const GROUND = ["水が見える","とても湿っている","やや湿っている","普通","乾いている","岩・礫","判断できない"];
+const ENV = ["湿原","池塘周辺","草地","岩場","木道周辺","その他"];
+const WEATHER = ["晴れ","くもり","霧","小雨","雨"];
+
+/* ================= state ================= */
+let S = load();
+function defaults(){
+  return {
+    app:"MIDAGAHARA FIELD NOTE", schema:1,
+    sessions:[], points:[
+      {point_id:"A", name:"POINT A", environment:"湿った湿原", note:""},
+      {point_id:"B", name:"POINT B", environment:"比較的乾いた草地", note:""},
+      {point_id:"C", name:"POINT C", environment:"池塘周辺", note:""},
+      {point_id:"D", name:"POINT D", environment:"その他", note:""}
+    ],
+    observations:[], photos:[], trash:[],
+    current_point:"A", unknown_seq:0, last_backup:null
+  };
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(raw){ const d = JSON.parse(raw); if(d && d.schema===1) return d; }
+  }catch(e){}
+  return defaults();
+}
+let saveTimer=null;
+function persist(){
+  try{
+    localStorage.setItem(LS_KEY, JSON.stringify(S));
+    setSaveState("✓ 保存済み", false);
+  }catch(e){
+    setSaveState("⚠ 保存できていません", true);
+    alert("保存に失敗しました。容量不足の可能性があります。今すぐ「データ」画面からバックアップを書き出してください。");
+  }
+}
+function setSaveState(t, warn){
+  const el = document.getElementById("saveState");
+  el.textContent = t; el.className = warn ? "warn" : "";
+}
+function uid(p){ return p + "_" + Date.now().toString(36) + Math.random().toString(36).slice(2,6); }
+function nowISO(){ return new Date().toISOString(); }
+function fmtTime(iso){ const d=new Date(iso); return d.toLocaleTimeString("ja-JP",{hour:"2-digit",minute:"2-digit",second:"2-digit"}); }
+
+/* ================= IndexedDB (photo thumbs) ================= */
+let idb=null;
+const idbReady = new Promise(res=>{
+  const rq = indexedDB.open("mfn_photos",1);
+  rq.onupgradeneeded = e=>{ e.target.result.createObjectStore("thumbs"); };
+  rq.onsuccess = e=>{ idb=e.target.result; res(); };
+  rq.onerror = ()=>res(); // photos degrade gracefully
+});
+function idbPut(k,blob){ return idbReady.then(()=> new Promise(r=>{ if(!idb)return r(false);
+  const tx=idb.transaction("thumbs","readwrite"); tx.objectStore("thumbs").put(blob,k);
+  tx.oncomplete=()=>r(true); tx.onerror=()=>r(false); })); }
+function idbGet(k){ return idbReady.then(()=> new Promise(r=>{ if(!idb)return r(null);
+  const rq=idb.transaction("thumbs").objectStore("thumbs").get(k);
+  rq.onsuccess=()=>r(rq.result||null); rq.onerror=()=>r(null); })); }
+
+/* ================= navigation ================= */
+function go(name){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById("scr-"+name).classList.add("active");
+  document.querySelectorAll("nav button").forEach(b=>b.classList.remove("on"));
+  document.getElementById("nav-"+name).classList.add("on");
+  if(name==="home") renderHome();
+  if(name==="rec") renderRec();
+  if(name==="list") renderList();
+  if(name==="data") renderData();
+  window.scrollTo(0,0);
+}
+function closeOvl(id){ document.getElementById(id).classList.remove("active"); }
+
+/* ================= session ================= */
+function activeSession(){ return S.sessions.find(s=>!s.end_time) || null; }
+
+function renderHome(){
+  const c = document.getElementById("homeSessionCard");
+  const sess = activeSession();
+  const stat = statCounts();
+  if(sess){
+    c.innerHTML = `
+      <div class="eyebrow">SESSION 進行中</div>
+      <h2 style="margin-top:4px">${esc(sess.location)}　<span class="mono" style="font-weight:600;font-size:.8rem">${sess.date} ${fmtTime(sess.start_time).slice(0,5)}〜</span></h2>
+      <div class="stats" style="margin-top:8px">${statHTML(stat)}</div>
+      <button class="btn btn-primary" style="margin-top:14px" onclick="go('rec')">記録画面へ</button>`;
+  } else {
+    c.innerHTML = `
+      <div class="eyebrow">SESSION</div>
+      <h2 style="margin-top:4px">観察を始めましょう</h2>
+      <div class="hint">日付・天候などを記録してからフィールドに出ます。</div>
+      ${S.observations.length? `<div class="stats" style="margin:10px 0 0">${statHTML(stat)}</div>`:""}
+      <button class="btn btn-primary btn-big" style="margin-top:14px" onclick="openSessionForm()">観察を開始する</button>`;
+  }
+  renderBackupInfo();
+}
+function openSessionForm(){
+  document.getElementById("sessNow").textContent = new Date().toLocaleString("ja-JP");
+  chipify("sessWeather", WEATHER, null, true);
+  document.getElementById("ovl-session").classList.add("active");
+}
+function saveSession(){
+  const w = chipVal("sessWeather");
+  if(!w){ alert("天候を選んでください"); return; }
+  const now = new Date();
+  S.sessions.push({
+    session_id: uid("s"),
+    date: now.toLocaleDateString("ja-JP"),
+    start_time: nowISO(), end_time: null,
+    weather: w,
+    temperature: document.getElementById("sessTemp").value || null,
+    location: document.getElementById("sessLoc").value || "弥陀ヶ原",
+    companions: document.getElementById("sessWho").value || "",
+    notes: document.getElementById("sessNote").value || ""
+  });
+  persist(); closeOvl("ovl-session"); go("rec");
+}
+function endSession(){
+  const sess = activeSession(); if(!sess) return;
+  if(!confirm("本日の観察を終了しますか？")) return;
+  sess.end_time = nowISO(); persist();
+  const st = statCounts(sess.session_id);
+  const mins = Math.round((new Date(sess.end_time)-new Date(sess.start_time))/60000);
+  document.getElementById("summaryBody").innerHTML = `
+    <div class="eyebrow">本日の記録</div>
+    <div style="font-size:.95rem;line-height:2.1;margin-top:6px">
+      観察時間：<b class="mono">${Math.floor(mins/60)}時間${mins%60}分</b><br>
+      観察記録：<b class="mono">${st.recs}</b> 件<br>
+      確認できた植物：<b class="mono">${st.species}</b> 種類<br>
+      UNKNOWN：<b class="mono">${st.unknown}</b> 件<br>
+      写真（縮小版）：<b class="mono">${st.photos}</b> 枚
+    </div>
+    <div class="warnbox">帰る前に必ずバックアップを書き出してください。カメラロールの写真も残っているか確認を。</div>`;
+  document.getElementById("ovl-summary").classList.add("active");
+  renderRec();
+}
+function statCounts(sessionId){
+  const obs = S.observations.filter(o=>!sessionId || o.session_id===sessionId);
+  const names = new Set(obs.filter(o=>o.identification_status!=="unknown").map(o=>o.plant_name));
+  return {
+    recs: obs.length,
+    species: names.size,
+    unknown: obs.filter(o=>o.identification_status==="unknown").length,
+    photos: S.photos.filter(p=>obs.some(o=>o.observation_id===p.observation_id)).length
+  };
+}
+function statHTML(st){
+  return `<div class="stat"><b>${st.recs}</b><span>記録</span></div>
+    <div class="stat"><b>${st.species}</b><span>種類</span></div>
+    <div class="stat"><b>${st.unknown}</b><span>UNKNOWN</span></div>
+    <div class="stat"><b>${st.photos}</b><span>写真</span></div>`;
+}
+
+/* ================= record screen ================= */
+let elapsedTimer=null;
+function renderRec(){
+  const sess = activeSession();
+  document.getElementById("noSessionMsg").style.display = sess? "none":"block";
+  document.getElementById("recBody").style.display = sess? "block":"none";
+  if(!sess) return;
+  const bar = document.getElementById("pointBar");
+  bar.innerHTML = "";
+  S.points.forEach(p=>{
+    const b = document.createElement("button");
+    b.className = "pt" + (S.current_point===p.point_id? " on":"");
+    b.innerHTML = `${esc(p.name)}<small>${esc(p.environment)}</small>`;
+    b.onclick = ()=>{ S.current_point=p.point_id; persist(); renderRec(); };
+    bar.appendChild(b);
+  });
+  const add = document.createElement("button");
+  add.className = "pt"; add.innerHTML = "＋ 地点を追加<small>新しい場所</small>";
+  add.onclick = addPoint;
+  bar.appendChild(add);
+  document.getElementById("recStats").innerHTML = statHTML(statCounts(sess.session_id));
+  clearInterval(elapsedTimer);
+  const tick = ()=>{
+    const mins = Math.floor((Date.now()-new Date(sess.start_time))/60000);
+    document.getElementById("elapsed").textContent =
+      `経過 ${Math.floor(mins/60)}時間${String(mins%60).padStart(2,"0")}分 ／ 現在地点 ${pointName(S.current_point)}`;
+  };
+  tick(); elapsedTimer = setInterval(tick, 30000);
+}
+function addPoint(){
+  const name = prompt("新しい地点の名前（例：POINT E）");
+  if(!name) return;
+  const env = prompt("どんな環境？（例：木道沿いの草地）") || "";
+  const id = uid("p");
+  S.points.push({point_id:id, name:name, environment:env, note:""});
+  S.current_point = id; persist(); renderRec();
+}
+function pointName(id){ const p=S.points.find(x=>x.point_id===id); return p? p.name : "?"; }
+
+/* ================= observation form ================= */
+let editingId = null;
+let pendingPhotos = []; // {photo_id, blob, dataUrl}
+
+function openObsForm(obsId){
+  editingId = obsId || null;
+  const o = obsId ? S.observations.find(x=>x.observation_id===obsId) : null;
+  document.getElementById("obsFormTitle").textContent = o? "記録を編集" : "植物を記録";
+  chipify("fPoint", S.points.map(p=>p.name), o? pointName(o.point_id): pointName(S.current_point), true);
+  const plantChips = PLANTS.concat(["UNKNOWN"]);
+  chipify("fPlant", plantChips, o? (o.identification_status==="unknown"? "UNKNOWN": (PLANTS.includes(o.plant_name)? o.plant_name:null)) : null, true);
+  document.querySelectorAll("#fPlant .chip").forEach(c=>{ if(c.textContent==="UNKNOWN") c.classList.add("unknown"); });
+  document.getElementById("fPlantFree").value = o && o.identification_status!=="unknown" && !PLANTS.includes(o.plant_name) ? o.plant_name : "";
+  chipify("fColor", COLORS, o? o.flower_color:null, true);
+  document.getElementById("fHeight").value = o && o.height_cm!=null ? o.height_cm : "";
+  chipify("fHeightMethod", ["実測","目測"], o? (o.height_method==="measured"?"実測":o.height_method==="estimated"?"目測":null):null, true);
+  chipify("fState", STATES, o? o.flower_state:null, true);
+  chipify("fGrowth", GROWTH, o? o.growth_pattern:null, true);
+  chipify("fGround", GROUND, o? o.ground_moisture:null, true);
+  chipify("fEnv", ENV, o? o.environment:null, true);
+  document.getElementById("fNote").value = o? o.student_original_note : "";
+  pendingPhotos = [];
+  renderFormPhotos(o);
+  document.getElementById("obsTimeInfo").textContent =
+    o? `記録時刻：${fmtTime(o.created_at)}（この前後に撮った写真がこの記録の写真です）`
+     : `いまの時刻：${fmtTime(nowISO())}（保存時に記録時刻が確定します）`;
+  document.getElementById("ovl-obs").classList.add("active");
+  document.querySelector("#ovl-obs .inner").scrollTop = 0;
+  window.scrollTo(0,0);
+}
+function closeObsForm(){
+  const hasInput = document.getElementById("fNote").value || chipVal("fColor") || pendingPhotos.length;
+  if(!editingId && hasInput && !confirm("入力内容を破棄して閉じますか？")) return;
+  closeOvl("ovl-obs");
+}
+async function renderFormPhotos(o){
+  const row = document.getElementById("fPhotos");
+  row.querySelectorAll("img").forEach(i=>i.remove());
+  const addBtn = row.querySelector(".addphoto");
+  if(o){
+    for(const p of S.photos.filter(p=>p.observation_id===o.observation_id)){
+      const blob = await idbGet(p.photo_id);
+      if(blob){ const img=document.createElement("img"); img.src=URL.createObjectURL(blob); row.insertBefore(img, addBtn); }
+    }
+  }
+  pendingPhotos.forEach(p=>{ const img=document.createElement("img"); img.src=p.dataUrl; row.insertBefore(img, addBtn); });
+}
+document.getElementById("photoInput").addEventListener("change", async e=>{
+  for(const file of e.target.files){
+    try{
+      const {blob, dataUrl} = await shrink(file, 1280);
+      pendingPhotos.push({photo_id: uid("ph"), blob, dataUrl});
+    }catch(err){ alert("写真の読み込みに失敗しました。この写真はスキップします。"); }
+  }
+  e.target.value = "";
+  renderFormPhotos(editingId ? S.observations.find(x=>x.observation_id===editingId) : null);
+});
+function shrink(file, max){
+  return new Promise((res, rej)=>{
+    const img = new Image();
+    img.onload = ()=>{
+      const sc = Math.min(1, max/Math.max(img.width,img.height));
+      const cv = document.createElement("canvas");
+      cv.width = Math.round(img.width*sc); cv.height = Math.round(img.height*sc);
+      cv.getContext("2d").drawImage(img,0,0,cv.width,cv.height);
+      cv.toBlob(b=>{
+        if(!b) return rej();
+        const fr = new FileReader();
+        fr.onload = ()=>res({blob:b, dataUrl:fr.result});
+        fr.readAsDataURL(b);
+      }, "image/jpeg", 0.75);
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = rej;
+    img.src = URL.createObjectURL(file);
+  });
+}
+async function saveObs(){
+  const sess = activeSession();
+  const pointNameSel = chipVal("fPoint");
+  const point = S.points.find(p=>p.name===pointNameSel);
+  const plantChip = chipVal("fPlant");
+  const free = document.getElementById("fPlantFree").value.trim();
+  const color = chipVal("fColor");
+  const note = document.getElementById("fNote").value.trim();
+
+  if(!point){ alert("観察地点を選んでください"); return; }
+  if(!plantChip && !free){ alert("植物名を選ぶか、UNKNOWNを選んでください"); return; }
+  if(!color){ alert("花の色を選んでください"); return; }
+  if(!note && !confirm("「気づいたこと」が空です。メモなしで保存しますか？")) return;
+
+  const isUnknown = plantChip==="UNKNOWN" && !free;
+  const h = document.getElementById("fHeight").value;
+  const hm = chipVal("fHeightMethod");
+  if(h && !hm){ alert("草丈は「実測」か「目測」かを選んでください"); return; }
+
+  let o;
+  if(editingId){
+    o = S.observations.find(x=>x.observation_id===editingId);
+    o.updated_at = nowISO();
+  } else {
+    o = { observation_id: uid("o"), session_id: sess? sess.session_id : null,
+          created_at: nowISO(), updated_at: nowISO(),
+          unknown_id: null, student_edited_note: null };
+    S.observations.push(o);
+  }
+  o.point_id = point.point_id;
+  if(isUnknown){
+    if(!o.unknown_id){ S.unknown_seq++; o.unknown_id = "UNKNOWN " + String(S.unknown_seq).padStart(2,"0"); }
+    o.plant_name = o.unknown_id;
+    o.identification_status = "unknown";
+  } else {
+    o.plant_name = free || plantChip;
+    o.identification_status = "field_identified";
+    o.unknown_id = null;
+  }
+  o.flower_color = color;
+  o.height_cm = h? Number(h) : null;
+  o.height_method = hm==="実測"?"measured": hm==="目測"?"estimated": null;
+  o.flower_state = chipVal("fState");
+  o.growth_pattern = chipVal("fGrowth");
+  o.ground_moisture = chipVal("fGround");
+  o.environment = chipVal("fEnv");
+  o.student_original_note = note;
+  persist();
+
+  for(const p of pendingPhotos){
+    const ok = await idbPut(p.photo_id, p.blob);
+    S.photos.push({photo_id:p.photo_id, observation_id:o.observation_id,
+      captured_at:nowISO(), caption:"", saved: ok});
+    if(!ok) alert("写真（縮小版）の保存に失敗しました。カメラロールの原本があれば研究は続けられます。");
+  }
+  pendingPhotos = [];
+  persist();
+  closeOvl("ovl-obs");
+  renderRec(); if(document.getElementById("scr-list").classList.contains("active")) renderList();
+  setSaveState("✓ 保存済み（"+ o.plant_name +"）", false);
+  setTimeout(()=>setSaveState("✓ 保存済み",false), 2500);
+}
+
+/* ================= list ================= */
+async function renderList(){
+  const wrap = document.getElementById("obsList");
+  if(!S.observations.length){
+    wrap.innerHTML = `<div class="card"><b>まだ記録がありません。</b><div class="hint">「記録」画面の「＋ 植物を記録」から始めましょう。</div></div>`;
+    return;
+  }
+  wrap.innerHTML = "";
+  const list = [...S.observations].reverse();
+  for(let i=0;i<list.length;i++){
+    const o = list[i];
+    const num = S.observations.indexOf(o)+1;
+    const card = document.createElement("div");
+    card.className = "card";
+    const meta = [pointName(o.point_id), o.flower_color,
+      o.height_cm!=null? `草丈${o.height_cm}cm（${o.height_method==="measured"?"実測":"目測"}）`:null,
+      o.ground_moisture, o.growth_pattern].filter(Boolean).join(" ／ ");
+    card.innerHTML = `
+      <div class="obs">
+        <div class="thumb" id="th_${o.observation_id}">写真<br>なし</div>
+        <div class="body">
+          <div class="name ${o.identification_status==="unknown"?"unk":""}">No.${num}　${esc(o.plant_name)}</div>
+          <div class="meta">${esc(meta)}</div>
+          <div class="meta mono">${fmtTime(o.created_at)}</div>
+          ${o.student_original_note? `<div class="note">「${esc(o.student_original_note)}」</div>`:""}
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:10px">
+        <button class="btn btn-ghost" style="padding:10px" onclick="openObsForm('${o.observation_id}')">編集</button>
+        <button class="btn btn-danger" style="padding:10px" onclick="delObs('${o.observation_id}')">削除</button>
+      </div>`;
+    wrap.appendChild(card);
+    const ph = S.photos.find(p=>p.observation_id===o.observation_id);
+    if(ph){
+      idbGet(ph.photo_id).then(blob=>{
+        if(!blob) return;
+        const el = document.getElementById("th_"+o.observation_id);
+        if(el){ const img=document.createElement("img"); img.className="thumb"; img.src=URL.createObjectURL(blob);
+          el.replaceWith(img); }
+      });
+    }
+  }
+}
+let lastDeleted = null, undoTimer = null;
+function delObs(id){
+  if(!confirm("この記録を削除しますか？")) return;
+  const idx = S.observations.findIndex(o=>o.observation_id===id);
+  if(idx<0) return;
+  lastDeleted = { obs: S.observations[idx], photos: S.photos.filter(p=>p.observation_id===id) };
+  S.observations.splice(idx,1);
+  S.photos = S.photos.filter(p=>p.observation_id!==id);
+  S.trash.push({deleted_at: nowISO(), obs: lastDeleted.obs});
+  persist(); renderList(); renderRec();
+  const bar = document.getElementById("undoBar");
+  bar.style.display = "flex";
+  clearTimeout(undoTimer);
+  undoTimer = setTimeout(()=>{ bar.style.display="none"; lastDeleted=null; }, 15000);
+}
+function undoDelete(){
+  if(!lastDeleted) return;
+  S.observations.push(lastDeleted.obs);
+  S.photos.push(...lastDeleted.photos);
+  S.trash = S.trash.filter(t=>t.obs.observation_id!==lastDeleted.obs.observation_id);
+  S.observations.sort((a,b)=> a.created_at < b.created_at ? -1:1);
+  lastDeleted = null;
+  document.getElementById("undoBar").style.display = "none";
+  persist(); renderList(); renderRec();
+}
+
+/* ================= data / backup ================= */
+function renderData(){ renderBackupInfo(); }
+function renderBackupInfo(){
+  const t = S.last_backup ? new Date(S.last_backup).toLocaleString("ja-JP") : null;
+  const txt = t ? "最終バックアップ："+t : "最終バックアップ：まだありません";
+  document.getElementById("backupInfo").textContent = txt;
+  document.getElementById("backupInfo2").textContent = txt;
+}
+function exportPayload(){
+  const {trash, ...rest} = S;
+  return JSON.stringify(rest, null, 1);
+}
+function showRaw(){
+  document.getElementById("rawJson").style.display="block";
+  document.getElementById("copyRawBtn").style.display="block";
+  document.getElementById("rawJson").value = exportPayload();
+}
+function copyRaw(){
+  const ta = document.getElementById("rawJson");
+  ta.select(); ta.setSelectionRange(0, 999999);
+  try{ document.execCommand("copy"); alert("コピーしました。メモアプリなどに貼り付けて保存してください。"); }
+  catch(e){ alert("長押しで全選択してコピーしてください。"); }
+}
+async function exportBackup(){
+  const json = exportPayload();
+  const fname = "midagahara_" + new Date().toISOString().slice(0,16).replace(/[:T]/g,"-") + ".json";
+  const blob = new Blob([json], {type:"application/json"});
+  const file = new File([blob], fname, {type:"application/json"});
+  let done = false;
+  if(navigator.canShare && navigator.canShare({files:[file]})){
+    try{ await navigator.share({files:[file], title:"弥陀ヶ原 研究データ"}); done = true; }catch(e){}
+  }
+  if(!done){
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = fname;
+    document.body.appendChild(a); a.click(); a.remove();
+  }
+  S.last_backup = nowISO(); persist(); renderBackupInfo();
+}
+
+/* ================= mini zukan ================= */
+let zukanFromForm = false;
+function openZukan(fromForm){
+  zukanFromForm = !!fromForm;
+  const wrap = document.getElementById("zukanList");
+  wrap.innerHTML = "";
+  PLANTS.forEach(name=>{
+    const info = PLANT_INFO[name]; if(!info) return;
+    const card = document.createElement("div");
+    card.className = "card"; card.style.padding = "0"; card.style.overflow = "hidden";
+    card.innerHTML = `
+      <button type="button" style="width:100%;background:none;border:none;text-align:left;
+        padding:14px 16px;font-family:inherit;cursor:pointer;display:flex;justify-content:space-between;align-items:center"
+        onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display==='block'?'none':'block'">
+        <span><b style="font-size:1rem">${esc(name)}</b>
+          <span style="font-size:.74rem;color:var(--sub);margin-left:6px">${esc(info.color)}・${esc(info.h)}</span></span>
+        <span style="color:var(--moss);font-weight:800">▾</span>
+      </button>
+      <div style="display:none;padding:0 16px 14px;border-top:1px solid var(--line)">
+        <div style="font-size:.85rem;line-height:2;margin-top:10px">
+          <b>科：</b>${esc(info.fam)}<br>
+          <b>花の色：</b>${esc(info.color)}<br>
+          <b>草丈：</b>${esc(info.h)}<br>
+          <b>花期：</b>${esc(info.season)}<br>
+          <b>生育環境：</b>${esc(info.env)}
+        </div>
+        <div style="background:var(--wet);border-radius:10px;padding:10px 12px;font-size:.85rem;margin-top:8px">
+          <b>ここを見よう：</b>${esc(info.point)}
+        </div>
+        ${info.sim && info.sim!=="—" ? `<div class="hint" style="margin-top:8px"><b>似ている植物：</b>${esc(info.sim)}</div>`:""}
+        <div style="display:flex;gap:10px;margin-top:12px">
+          <button type="button" class="btn btn-ghost" style="padding:11px;font-size:.9rem"
+            onclick="webPhoto('${esc(name)}')">写真をWebで見る</button>
+          ${zukanFromForm ? `<button type="button" class="btn btn-primary" style="padding:11px;font-size:.9rem"
+            onclick="pickFromZukan('${esc(name)}')">この植物を選ぶ</button>` : ""}
+        </div>
+        ${!navigator.onLine ? `<div class="hint" style="margin-top:6px;color:var(--amber)">いま圏外のため写真検索は開けません。特徴の文章とスクリーンショットで見比べてください。</div>`:""}
+      </div>`;
+    wrap.appendChild(card);
+  });
+  document.getElementById("ovl-zukan").classList.add("active");
+  document.querySelector("#ovl-zukan .inner").scrollTop = 0;
+}
+function webPhoto(name){
+  window.open("https://www.google.com/search?tbm=isch&q=" + encodeURIComponent(name + " 高山植物"), "_blank");
+}
+function pickFromZukan(name){
+  closeOvl("ovl-zukan");
+  document.getElementById("fPlantFree").value = "";
+  document.querySelectorAll("#fPlant .chip").forEach(c=>{
+    c.classList.toggle("on", c.textContent===name);
+  });
+}
+
+/* ================= chip helpers ================= */
+function chipify(containerId, items, selected, single){
+  const c = document.getElementById(containerId);
+  c.innerHTML = "";
+  items.forEach(v=>{
+    const b = document.createElement("button");
+    b.type="button"; b.className = "chip" + (v===selected? " on":"");
+    b.textContent = v;
+    b.onclick = ()=>{
+      if(single){
+        const was = b.classList.contains("on");
+        c.querySelectorAll(".chip").forEach(x=>x.classList.remove("on"));
+        if(!was) b.classList.add("on");
+      } else b.classList.toggle("on");
+    };
+    c.appendChild(b);
+  });
+}
+function chipVal(containerId){
+  const on = document.querySelector("#"+containerId+" .chip.on");
+  return on ? on.textContent : null;
+}
+function esc(s){ return String(s??"").replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
+
+/* ================= init ================= */
+renderHome();
+if("serviceWorker" in navigator){ navigator.serviceWorker.register("sw.js").catch(()=>{}); }
+window.addEventListener("pagehide", persist);
+document.addEventListener("visibilitychange", ()=>{ if(document.hidden) persist(); });
+</script>
+</body>
+</html>
