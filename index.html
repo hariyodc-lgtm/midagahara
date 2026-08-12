@@ -166,6 +166,15 @@ nav button.on{color:var(--moss)}
 }
 .undo button{background:none;border:none;color:#8FD9A5;font-weight:800;font-size:.95rem;cursor:pointer;font-family:inherit;padding:4px 8px}
 #rawJson{font-family:ui-monospace,Menlo,monospace;font-size:.72rem;min-height:220px}
+/* photo viewer */
+#photoViewBox{overflow:auto;-webkit-overflow-scrolling:touch;height:calc(100vh - 130px)}
+#photoViewImg{width:100%;display:block}
+#photoViewImg.zoomed{width:260%;max-width:none}
+.viewerbar{
+  position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:center;
+  padding:calc(12px + env(safe-area-inset-top)) 16px 12px;background:#111;
+}
+.viewerbar button{font-family:inherit;font-size:1rem;font-weight:800;border:none;border-radius:10px;padding:10px 18px;cursor:pointer}
 .divider{border:none;border-top:1px solid var(--line);margin:14px 0}
 .timechip{background:var(--wet);border-radius:8px;padding:8px 12px;font-size:.82rem;margin-top:8px}
 </style>
@@ -298,6 +307,7 @@ nav button.on{color:var(--moss)}
     <button type="button" class="btn btn-sub" style="padding:11px;margin-bottom:10px" onclick="openZukan(true)">特徴を見て選ぶ（ミニ図鑑）</button>
     <div class="chips" id="fPlant"></div>
     <input type="text" id="fPlantFree" placeholder="リストにない名前を書く" style="margin-top:8px">
+    <div id="plantPreview" style="display:none;background:var(--card);border:1.5px solid var(--moss);border-radius:var(--r);padding:14px;margin-top:10px"></div>
 
     <label>花の色 <span class="req">★</span></label>
     <div class="chips" id="fColor"></div>
@@ -357,6 +367,16 @@ nav button.on{color:var(--moss)}
     <div id="zukanList" style="margin-top:12px"></div>
     <input type="file" id="zukanPhotoInput" accept="image/*" multiple style="display:none">
   </div>
+</div>
+
+<!-- ============ PHOTO VIEWER ============ -->
+<div class="overlay" id="ovl-photo" style="z-index:70;background:#111">
+  <div class="viewerbar">
+    <button style="background:#333;color:#fff" onclick="closeOvl('ovl-photo')">閉じる</button>
+    <span style="color:#aaa;font-size:.78rem">画像をタップで拡大／縮小</span>
+    <button style="background:var(--danger);color:#fff" onclick="viewerDelete()">削除</button>
+  </div>
+  <div id="photoViewBox"><img id="photoViewImg" alt=""></div>
 </div>
 
 <div class="undo" id="undoBar">
@@ -605,7 +625,9 @@ function openObsForm(obsId){
   chipify("fPoint", S.points.map(p=>p.name), o? pointName(o.point_id): pointName(S.current_point), true);
   const plantChips = PLANTS.concat(["UNKNOWN"]);
   chipify("fPlant", plantChips, o? (o.identification_status==="unknown"? "UNKNOWN": (PLANTS.includes(o.plant_name)? o.plant_name:null)) : null, true);
-  document.querySelectorAll("#fPlant .chip").forEach(c=>{ if(c.textContent==="UNKNOWN") c.classList.add("unknown"); });
+  document.querySelectorAll("#fPlant .chip").forEach(c=>{ if(c.textContent==="UNKNOWN") c.classList.add("unknown");
+    c.addEventListener("click", ()=>setTimeout(updatePlantPreview,0)); });
+  updatePlantPreview();
   document.getElementById("fPlantFree").value = o && o.identification_status!=="unknown" && !PLANTS.includes(o.plant_name) ? o.plant_name : "";
   chipify("fColor", COLORS, o? o.flower_color:null, true);
   document.getElementById("fHeight").value = o && o.height_cm!=null ? o.height_cm : "";
@@ -900,6 +922,63 @@ function pickFromZukan(name){
   document.querySelectorAll("#fPlant .chip").forEach(c=>{
     c.classList.toggle("on", c.textContent===name);
   });
+  updatePlantPreview();
+}
+/* --- 全画面写真ビューア --- */
+let viewerOnDelete = null;
+function openPhotoViewer(url, onDelete){
+  viewerOnDelete = onDelete || null;
+  const img = document.getElementById("photoViewImg");
+  img.src = url; img.classList.remove("zoomed");
+  document.getElementById("ovl-photo").classList.add("active");
+  document.getElementById("photoViewBox").scrollTop = 0;
+}
+document.getElementById("photoViewImg").addEventListener("click", function(){
+  this.classList.toggle("zoomed");
+});
+function viewerDelete(){
+  if(!viewerOnDelete) { closeOvl("ovl-photo"); return; }
+  if(!confirm("この参考写真を削除しますか？")) return;
+  viewerOnDelete();
+  viewerOnDelete = null;
+  closeOvl("ovl-photo");
+}
+/* --- 記録フォーム内の植物プレビュー --- */
+async function updatePlantPreview(){
+  const box = document.getElementById("plantPreview");
+  if(!box) return;
+  const name = chipVal("fPlant");
+  const info = name && name!=="UNKNOWN" ? PLANT_INFO[name] : null;
+  if(!info){ box.style.display="none"; box.innerHTML=""; return; }
+  box.style.display = "block";
+  box.innerHTML = `
+    <b style="font-size:.95rem">${esc(name)}</b>
+    <span style="font-size:.74rem;color:var(--sub)">（${esc(info.fam)}）</span>
+    <div style="font-size:.82rem;line-height:1.9;margin-top:4px">
+      花の色：${esc(info.color)}　草丈：${esc(info.h)}<br>
+      花期：${esc(info.season)}　環境：${esc(info.env)}
+    </div>
+    <div style="background:var(--wet);border-radius:8px;padding:8px 10px;font-size:.82rem;margin-top:6px">
+      <b>ここを見よう：</b>${esc(info.point)}
+    </div>
+    <div class="photorow" id="previewPhotos"></div>`;
+  const row = document.getElementById("previewPhotos");
+  const pids = S.zukan_photos[name] || [];
+  if(!pids.length){
+    row.innerHTML = `<span class="hint">参考写真は未登録（ミニ図鑑から登録できます）</span>`;
+    return;
+  }
+  for(const pid of pids){
+    const blob = await idbGet(pid);
+    if(!blob) continue;
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(blob);
+    img.onclick = ()=> openPhotoViewer(img.src, ()=>{
+      S.zukan_photos[name] = S.zukan_photos[name].filter(x=>x!==pid);
+      persist(); updatePlantPreview();
+    });
+    row.appendChild(img);
+  }
 }
 /* --- 図鑑 参考写真（端末内のみ） --- */
 let currentZukanIdx = null;
@@ -940,10 +1019,10 @@ async function renderZukanPhotos(onlyIdx){
       if(!blob) continue;
       const img = document.createElement("img");
       img.src = URL.createObjectURL(blob);
-      img.onclick = ()=>{ if(confirm("この参考写真を削除しますか？")){
+      img.onclick = ()=> openPhotoViewer(img.src, ()=>{
         S.zukan_photos[name] = S.zukan_photos[name].filter(x=>x!==pid);
-        persist(); renderZukanPhotos(i);
-      }};
+        persist(); renderZukanPhotos(i); updatePlantPreview();
+      });
       row.insertBefore(img, addBtn);
     }
   }
