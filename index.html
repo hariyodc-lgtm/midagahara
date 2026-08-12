@@ -193,6 +193,8 @@ nav button.on{color:var(--moss)}
 <section class="screen active" id="scr-home">
   <div class="card" id="homeSessionCard"></div>
 
+  <div class="card" id="hypoCard"></div>
+
   <div class="card">
     <div class="eyebrow">FIELD RULES</div>
     <div style="font-size:.85rem;margin-top:6px;line-height:1.9">
@@ -287,7 +289,8 @@ nav button.on{color:var(--moss)}
     <textarea id="sessNote" placeholder="出発時に気づいたことなど"></textarea>
   </div>
   <div class="overlay-foot"><div class="inner2">
-    <button class="btn btn-primary" onclick="saveSession()">観察を開始する</button>
+    <button class="btn btn-ghost" style="flex:0 0 30%" onclick="closeOvl('ovl-session')">閉じる</button>
+    <button class="btn btn-primary" id="sessSaveBtn" onclick="saveSession()">観察を開始する</button>
   </div></div>
 </div>
 
@@ -379,6 +382,52 @@ nav button.on{color:var(--moss)}
   <div id="photoViewBox"><img id="photoViewImg" alt=""></div>
 </div>
 
+<!-- ============ HYPOTHESIS OVERLAY ============ -->
+<div class="overlay" id="ovl-hypo">
+  <div class="inner">
+    <div class="overlay-head">
+      <b>事前の仮説と予想</b>
+      <button class="closeX" onclick="saveHypo(true)">閉じる</button>
+    </div>
+    <div class="warnbox" style="margin-top:10px">観察に行く<b>前</b>に、自分の言葉で書きます。当たっても外れてもOK。外れた方が研究は面白くなります。</div>
+
+    <h3>仮説1：湿った場所の方が、多くの種類の高山植物が見つかるのではないか。</h3>
+    <textarea id="hypoH1" placeholder="自分の予想：そう思う？思わない？理由は？"></textarea>
+
+    <h3>仮説2：高山は風が強く気温も低いので、背丈の低い植物が多いのではないか。</h3>
+    <textarea id="hypoH2" placeholder="自分の予想"></textarea>
+
+    <h3>仮説3：同じ湿原でも、水分などの環境で生えている植物が違うのではないか。</h3>
+    <textarea id="hypoH3" placeholder="自分の予想"></textarea>
+
+    <h3>仮説4：高山植物の花の色には、何か傾向（多い色）があるのではないか。</h3>
+    <textarea id="hypoH4" placeholder="自分の予想：何色が多いと思う？なぜ？"></textarea>
+
+    <h3>仮説5：同じ種類の植物は、ばらばらではなく集まって（群生して）生えているのではないか。</h3>
+    <textarea id="hypoH5" placeholder="自分の予想"></textarea>
+
+    <h3>自分だけの仮説（あれば）</h3>
+    <textarea id="hypoExtra" placeholder="ほかに「こうなるかも」と思うこと"></textarea>
+
+    <hr class="divider">
+    <h3>数字・選択の予想</h3>
+    <label>何種類くらい見つかると思う？</label>
+    <input type="number" id="hypoSpecies" inputmode="numeric" placeholder="例：10">
+    <label>一番多いと思う花の色</label>
+    <div class="chips" id="hypoColor"></div>
+    <label>植物が一番多そうな場所</label>
+    <div class="chips" id="hypoPlace"></div>
+    <label>草丈の予想</label>
+    <div class="chips" id="hypoHeight"></div>
+
+    <label>この研究をしようと思った理由・きっかけ</label>
+    <textarea id="hypoReason" placeholder="レポートの「研究のきっかけ」になります"></textarea>
+  </div>
+  <div class="overlay-foot"><div class="inner2">
+    <button class="btn btn-primary" onclick="saveHypo(false)">保存する</button>
+  </div></div>
+</div>
+
 <div class="undo" id="undoBar">
   <span>記録を削除しました</span>
   <button onclick="undoDelete()">元に戻す</button>
@@ -438,13 +487,21 @@ function defaults(){
       {point_id:"D", name:"POINT D", environment:"その他", note:""}
     ],
     observations:[], photos:[], trash:[],
-    current_point:"A", unknown_seq:0, last_backup:null, zukan_photos:{}
+    current_point:"A", unknown_seq:0, last_backup:null, zukan_photos:{},
+    hypothesis:{filled_date:null, h1:"", h2:"", h3:"", h4:"", h5:"", extra:"",
+      pred_species:"", pred_color:null, pred_place:null, pred_height:null, reason:""}
   };
 }
 function load(){
   try{
     const raw = localStorage.getItem(LS_KEY);
-    if(raw){ const d = JSON.parse(raw); if(d && d.schema===1){ d.zukan_photos = d.zukan_photos || {}; return d; } }
+    if(raw){ const d = JSON.parse(raw); if(d && d.schema===1){
+      d.zukan_photos = d.zukan_photos || {};
+      d.hypothesis = d.hypothesis || {filled_date:null, h1:"", h2:"", h3:"", extra:"",
+        pred_species:"", pred_color:null, pred_place:null, pred_height:null, reason:""};
+      d.hypothesis.h4 = d.hypothesis.h4 || "";
+      d.hypothesis.h5 = d.hypothesis.h5 || "";
+      return d; } }
   }catch(e){}
   return defaults();
 }
@@ -507,7 +564,8 @@ function renderHome(){
       <div class="eyebrow">SESSION 進行中</div>
       <h2 style="margin-top:4px">${esc(sess.location)}　<span class="mono" style="font-weight:600;font-size:.8rem">${sess.date} ${fmtTime(sess.start_time).slice(0,5)}〜</span></h2>
       <div class="stats" style="margin-top:8px">${statHTML(stat)}</div>
-      <button class="btn btn-primary" style="margin-top:14px" onclick="go('rec')">記録画面へ</button>`;
+      <button class="btn btn-primary" style="margin-top:14px" onclick="go('rec')">記録画面へ</button>
+      <button class="btn btn-ghost" onclick="openSessionForm(true)">日付・天候などを見る・直す</button>`;
   } else {
     c.innerHTML = `
       <div class="eyebrow">SESSION</div>
@@ -516,16 +574,91 @@ function renderHome(){
       ${S.observations.length? `<div class="stats" style="margin:10px 0 0">${statHTML(stat)}</div>`:""}
       <button class="btn btn-primary btn-big" style="margin-top:14px" onclick="openSessionForm()">観察を開始する</button>`;
   }
+  renderHypoCard();
   renderBackupInfo();
 }
-function openSessionForm(){
-  document.getElementById("sessNow").textContent = new Date().toLocaleString("ja-JP");
-  chipify("sessWeather", WEATHER, null, true);
+function hypoFilled(){
+  const h = S.hypothesis;
+  return !!(h.h1 || h.h2 || h.h3 || h.h4 || h.h5 || h.extra || h.pred_species || h.pred_color);
+}
+function renderHypoCard(){
+  const c = document.getElementById("hypoCard");
+  const done = hypoFilled();
+  c.innerHTML = `
+    <div class="eyebrow">HYPOTHESIS</div>
+    <h2 style="margin-top:4px">仮説・予想 ${done? "✓ 記入済み":"（観察前に記入）"}</h2>
+    ${done
+      ? `<div class="hint">記入日：${esc(S.hypothesis.filled_date||"—")}。観察後に結果と比較します。</div>`
+      : `<div class="hint">出発前に本人が記入します。当たり外れは気にしなくてOK。</div>`}
+    <button class="btn ${done? "btn-ghost":"btn-primary"}" style="margin-top:10px" onclick="openHypo()">${done? "見る・直す":"仮説を書く"}</button>`;
+}
+function openHypo(){
+  const h = S.hypothesis;
+  document.getElementById("hypoH1").value = h.h1;
+  document.getElementById("hypoH2").value = h.h2;
+  document.getElementById("hypoH3").value = h.h3;
+  document.getElementById("hypoH4").value = h.h4;
+  document.getElementById("hypoH5").value = h.h5;
+  document.getElementById("hypoExtra").value = h.extra;
+  document.getElementById("hypoSpecies").value = h.pred_species;
+  document.getElementById("hypoReason").value = h.reason;
+  chipify("hypoColor", ["白","黄色","青・紫","ピンク","その他"], h.pred_color, true);
+  chipify("hypoPlace", ["湿った場所","草地","池塘のまわり","岩場","その他"], h.pred_place, true);
+  chipify("hypoHeight", ["低い植物が多い","高い植物が多い","分からない"], h.pred_height, true);
+  document.getElementById("ovl-hypo").classList.add("active");
+  document.querySelector("#ovl-hypo .inner").scrollTop = 0;
+}
+function saveHypo(fromClose){
+  const h = S.hypothesis;
+  h.h1 = document.getElementById("hypoH1").value.trim();
+  h.h2 = document.getElementById("hypoH2").value.trim();
+  h.h3 = document.getElementById("hypoH3").value.trim();
+  h.h4 = document.getElementById("hypoH4").value.trim();
+  h.h5 = document.getElementById("hypoH5").value.trim();
+  h.extra = document.getElementById("hypoExtra").value.trim();
+  h.pred_species = document.getElementById("hypoSpecies").value;
+  h.pred_color = chipVal("hypoColor");
+  h.pred_place = chipVal("hypoPlace");
+  h.pred_height = chipVal("hypoHeight");
+  h.reason = document.getElementById("hypoReason").value.trim();
+  if(hypoFilled() && !h.filled_date) h.filled_date = new Date().toLocaleDateString("ja-JP");
+  persist();
+  closeOvl("ovl-hypo");
+  renderHypoCard();
+  if(!fromClose) setSaveState("✓ 仮説を保存しました", false);
+  setTimeout(()=>setSaveState("✓ 保存済み", false), 2500);
+}
+let sessEditing = false;
+function openSessionForm(edit){
+  sessEditing = !!edit && !!activeSession();
+  const s = sessEditing ? activeSession() : null;
+  document.getElementById("sessNow").textContent =
+    s ? s.date + " " + fmtTime(s.start_time).slice(0,5) + " 開始（変更されません）"
+      : new Date().toLocaleString("ja-JP");
+  chipify("sessWeather", WEATHER, s ? s.weather : null, true);
+  document.getElementById("sessTemp").value = s ? (s.temperature||"") : "";
+  document.getElementById("sessLoc").value = s ? s.location : "弥陀ヶ原";
+  document.getElementById("sessWho").value = s ? s.companions : "";
+  document.getElementById("sessNote").value = s ? s.notes : "";
+  document.getElementById("sessSaveBtn").textContent = sessEditing ? "保存する" : "観察を開始する";
   document.getElementById("ovl-session").classList.add("active");
+  document.querySelector("#ovl-session .inner").scrollTop = 0;
 }
 function saveSession(){
   const w = chipVal("sessWeather");
   if(!w){ alert("天候を選んでください"); return; }
+  if(sessEditing){
+    const s = activeSession();
+    if(s){
+      s.weather = w;
+      s.temperature = document.getElementById("sessTemp").value || null;
+      s.location = document.getElementById("sessLoc").value || "弥陀ヶ原";
+      s.companions = document.getElementById("sessWho").value || "";
+      s.notes = document.getElementById("sessNote").value || "";
+      persist();
+    }
+    closeOvl("ovl-session"); renderHome(); return;
+  }
   const now = new Date();
   S.sessions.push({
     session_id: uid("s"),
