@@ -355,6 +355,7 @@ nav button.on{color:var(--moss)}
     </div>
     <div class="warnbox" style="margin-top:10px">これはAIが作った参考情報です。正式な名前の確定（同定）は、帰宅後に図鑑や信頼できる資料で自分で確認します。現地では「たぶんこれ」でOK、迷ったらUNKNOWN。</div>
     <div id="zukanList" style="margin-top:12px"></div>
+    <input type="file" id="zukanPhotoInput" accept="image/*" multiple style="display:none">
   </div>
 </div>
 
@@ -417,13 +418,13 @@ function defaults(){
       {point_id:"D", name:"POINT D", environment:"その他", note:""}
     ],
     observations:[], photos:[], trash:[],
-    current_point:"A", unknown_seq:0, last_backup:null
+    current_point:"A", unknown_seq:0, last_backup:null, zukan_photos:{}
   };
 }
 function load(){
   try{
     const raw = localStorage.getItem(LS_KEY);
-    if(raw){ const d = JSON.parse(raw); if(d && d.schema===1) return d; }
+    if(raw){ const d = JSON.parse(raw); if(d && d.schema===1){ d.zukan_photos = d.zukan_photos || {}; return d; } }
   }catch(e){}
   return defaults();
 }
@@ -848,7 +849,7 @@ function openZukan(fromForm){
   zukanFromForm = !!fromForm;
   const wrap = document.getElementById("zukanList");
   wrap.innerHTML = "";
-  PLANTS.forEach(name=>{
+  PLANTS.forEach((name,idx)=>{
     const info = PLANT_INFO[name]; if(!info) return;
     const card = document.createElement("div");
     card.className = "card"; card.style.padding = "0"; card.style.overflow = "hidden";
@@ -872,6 +873,10 @@ function openZukan(fromForm){
           <b>ここを見よう：</b>${esc(info.point)}
         </div>
         ${info.sim && info.sim!=="—" ? `<div class="hint" style="margin-top:8px"><b>似ている植物：</b>${esc(info.sim)}</div>`:""}
+        <div class="hint" style="margin-top:10px"><b>参考写真</b>（この端末の中だけに保存されます）。スクショや保存した写真を登録すると、圏外でも名前と一緒に見られます。写真をタップで削除。</div>
+        <div class="photorow" id="zp_${idx}">
+          <button type="button" class="addphoto" onclick="addZukanPhoto(${idx})">＋ 参考写真<br>を登録</button>
+        </div>
         <div style="display:flex;gap:10px;margin-top:12px">
           <button type="button" class="btn btn-ghost" style="padding:11px;font-size:.9rem"
             onclick="webPhoto('${esc(name)}')">写真をWebで見る</button>
@@ -884,6 +889,7 @@ function openZukan(fromForm){
   });
   document.getElementById("ovl-zukan").classList.add("active");
   document.querySelector("#ovl-zukan .inner").scrollTop = 0;
+  renderZukanPhotos();
 }
 function webPhoto(name){
   window.open("https://www.google.com/search?tbm=isch&q=" + encodeURIComponent(name + " 高山植物"), "_blank");
@@ -894,6 +900,53 @@ function pickFromZukan(name){
   document.querySelectorAll("#fPlant .chip").forEach(c=>{
     c.classList.toggle("on", c.textContent===name);
   });
+}
+/* --- 図鑑 参考写真（端末内のみ） --- */
+let currentZukanIdx = null;
+function addZukanPhoto(idx){
+  currentZukanIdx = idx;
+  document.getElementById("zukanPhotoInput").click();
+}
+document.getElementById("zukanPhotoInput").addEventListener("change", async e=>{
+  if(currentZukanIdx==null) return;
+  const name = PLANTS[currentZukanIdx];
+  for(const file of e.target.files){
+    try{
+      const {blob} = await shrink(file, 1024);
+      const pid = "ref_" + uid("z");
+      const ok = await idbPut(pid, blob);
+      if(ok){
+        if(!S.zukan_photos[name]) S.zukan_photos[name] = [];
+        S.zukan_photos[name].push(pid);
+      } else {
+        alert("写真の保存に失敗しました。");
+      }
+    }catch(err){ alert("写真の読み込みに失敗しました。"); }
+  }
+  e.target.value = "";
+  persist();
+  renderZukanPhotos(currentZukanIdx);
+});
+async function renderZukanPhotos(onlyIdx){
+  for(let i=0;i<PLANTS.length;i++){
+    if(onlyIdx!=null && i!==onlyIdx) continue;
+    const row = document.getElementById("zp_"+i);
+    if(!row) continue;
+    row.querySelectorAll("img").forEach(im=>im.remove());
+    const addBtn = row.querySelector(".addphoto");
+    const name = PLANTS[i];
+    for(const pid of (S.zukan_photos[name]||[])){
+      const blob = await idbGet(pid);
+      if(!blob) continue;
+      const img = document.createElement("img");
+      img.src = URL.createObjectURL(blob);
+      img.onclick = ()=>{ if(confirm("この参考写真を削除しますか？")){
+        S.zukan_photos[name] = S.zukan_photos[name].filter(x=>x!==pid);
+        persist(); renderZukanPhotos(i);
+      }};
+      row.insertBefore(img, addBtn);
+    }
+  }
 }
 
 /* ================= chip helpers ================= */
