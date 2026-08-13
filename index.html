@@ -585,7 +585,8 @@ function renderHome(){
       <h2 style="margin-top:4px">観察を始めましょう</h2>
       <div class="hint">日付・天候などを記録してからフィールドに出ます。</div>
       ${S.observations.length? `<div class="stats" style="margin:10px 0 0">${statHTML(stat)}</div>`:""}
-      <button class="btn btn-primary btn-big" style="margin-top:14px" onclick="openSessionForm()">観察を開始する</button>`;
+      <button class="btn btn-primary btn-big" style="margin-top:14px" onclick="openSessionForm()">観察を開始する</button>
+      ${S.sessions.length? `<button class="btn btn-ghost" onclick="reopenSession()">直前の観察を再開する（間違えて終了したとき）</button>`:""}`;
   }
   renderHypoCard();
   renderBackupInfo();
@@ -684,6 +685,14 @@ function saveSession(){
     notes: document.getElementById("sessNote").value || ""
   });
   persist(); closeOvl("ovl-session"); go("rec");
+}
+function reopenSession(){
+  const last = S.sessions[S.sessions.length-1];
+  if(!last) return;
+  if(!confirm(last.date + " の観察を再開しますか？")) return;
+  last.end_time = null;
+  persist();
+  go("rec");
 }
 function endSession(){
   const sess = activeSession(); if(!sess) return;
