@@ -77,6 +77,8 @@ textarea{min-height:96px;resize:vertical}
 .chip.on{background:var(--moss);border-color:var(--moss);color:#fff}
 .chip.unknown{border-color:var(--amber);color:var(--amber);font-weight:800}
 .chip.unknown.on{background:var(--amber);color:#fff}
+.chip.done{background:var(--wet);border-color:var(--moss);color:var(--moss-deep)}
+.chip.done.on{background:var(--moss);border-color:var(--moss);color:#fff}
 
 /* ---------- point bar ---------- */
 .pointbar{
@@ -306,7 +308,7 @@ nav button.on{color:var(--moss)}
     <div class="chips" id="fPoint"></div>
 
     <label>植物名 <span class="req">★</span>（分からなければUNKNOWN）</label>
-    <div class="hint" style="margin-bottom:6px">このリストは入力の補助です。正式な同定は帰宅後に図鑑で行います。迷ったらUNKNOWNで大丈夫。</div>
+    <div class="hint" style="margin-bottom:6px">このリストは入力の補助です。正式な同定は帰宅後に図鑑で行います。迷ったらUNKNOWNで大丈夫。薄い緑のタグは記録済みの植物です。</div>
     <button type="button" class="btn btn-sub" style="padding:11px;margin-bottom:10px" onclick="openZukan(true)">特徴を見て選ぶ（ミニ図鑑）</button>
     <div class="chips" id="fPlant"></div>
     <input type="text" id="fPlantFree" placeholder="リストにない名前を書く" style="margin-top:8px">
@@ -780,7 +782,9 @@ function openObsForm(obsId){
   chipify("fPoint", S.points.map(p=>p.name), o? pointName(o.point_id): pointName(S.current_point), true);
   const plantChips = PLANTS.concat(["UNKNOWN"]);
   chipify("fPlant", plantChips, o? (o.identification_status==="unknown"? "UNKNOWN": (PLANTS.includes(o.plant_name)? o.plant_name:null)) : null, true);
+  const obsSet = new Set(S.observations.filter(x=>x.identification_status!=="unknown").map(x=>x.plant_name));
   document.querySelectorAll("#fPlant .chip").forEach(c=>{ if(c.textContent==="UNKNOWN") c.classList.add("unknown");
+    if(obsSet.has(c.textContent)) c.classList.add("done");
     c.addEventListener("click", ()=>setTimeout(updatePlantPreview,0)); });
   updatePlantPreview();
   document.getElementById("fPlantFree").value = o && o.identification_status!=="unknown" && !PLANTS.includes(o.plant_name) ? o.plant_name : "";
