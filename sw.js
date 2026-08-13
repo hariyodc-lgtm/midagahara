@@ -1,4 +1,4 @@
-const CACHE = "mfn-v10";
+const CACHE = "mfn-v11";
 const ASSETS = ["./", "./index.html"];
 
 self.addEventListener("install", e => {
