@@ -312,23 +312,23 @@ nav button.on{color:var(--moss)}
     <input type="text" id="fPlantFree" placeholder="リストにない名前を書く" style="margin-top:8px">
     <div id="plantPreview" style="display:none;background:var(--card);border:1.5px solid var(--moss);border-radius:var(--r);padding:14px;margin-top:10px"></div>
 
-    <label>花の色 <span class="req">★</span></label>
+    <label>花の色 <span class="req">★</span>（複数選択できます）</label>
     <div class="chips" id="fColor"></div>
 
     <label>草丈（cm）</label>
     <input type="number" id="fHeight" inputmode="decimal" placeholder="例：8">
     <div class="chips" id="fHeightMethod" style="margin-top:8px"></div>
 
-    <label>花の状態</label>
+    <label>花の状態（複数選択できます）</label>
     <div class="chips" id="fState"></div>
 
-    <label>生え方</label>
+    <label>生え方（複数選択できます）</label>
     <div class="chips" id="fGrowth"></div>
 
-    <label>地面の状態</label>
+    <label>地面の状態（複数選択できます）</label>
     <div class="chips" id="fGround"></div>
 
-    <label>周囲の環境</label>
+    <label>周囲の環境（複数選択できます）</label>
     <div class="chips" id="fEnv"></div>
 
     <label>自分の目で見て気づいたこと <span class="req">★</span></label>
@@ -773,13 +773,13 @@ function openObsForm(obsId){
     c.addEventListener("click", ()=>setTimeout(updatePlantPreview,0)); });
   updatePlantPreview();
   document.getElementById("fPlantFree").value = o && o.identification_status!=="unknown" && !PLANTS.includes(o.plant_name) ? o.plant_name : "";
-  chipify("fColor", COLORS, o? o.flower_color:null, true);
+  chipify("fColor", COLORS, o? o.flower_color:null, false);
   document.getElementById("fHeight").value = o && o.height_cm!=null ? o.height_cm : "";
   chipify("fHeightMethod", ["実測","目測"], o? (o.height_method==="measured"?"実測":o.height_method==="estimated"?"目測":null):null, true);
-  chipify("fState", STATES, o? o.flower_state:null, true);
-  chipify("fGrowth", GROWTH, o? o.growth_pattern:null, true);
-  chipify("fGround", GROUND, o? o.ground_moisture:null, true);
-  chipify("fEnv", ENV, o? o.environment:null, true);
+  chipify("fState", STATES, o? o.flower_state:null, false);
+  chipify("fGrowth", GROWTH, o? o.growth_pattern:null, false);
+  chipify("fGround", GROUND, o? o.ground_moisture:null, false);
+  chipify("fEnv", ENV, o? o.environment:null, false);
   document.getElementById("fNote").value = o? o.student_original_note : "";
   pendingPhotos = [];
   renderFormPhotos(o);
@@ -791,7 +791,7 @@ function openObsForm(obsId){
   window.scrollTo(0,0);
 }
 function closeObsForm(){
-  const hasInput = document.getElementById("fNote").value || chipVal("fColor") || pendingPhotos.length;
+  const hasInput = document.getElementById("fNote").value || chipVals("fColor").length || pendingPhotos.length;
   if(!editingId && hasInput && !confirm("入力内容を破棄して閉じますか？")) return;
   closeOvl("ovl-obs");
 }
@@ -843,12 +843,12 @@ async function saveObs(){
   const point = S.points.find(p=>p.name===pointNameSel);
   const plantChip = chipVal("fPlant");
   const free = document.getElementById("fPlantFree").value.trim();
-  const color = chipVal("fColor");
+  const colors = chipVals("fColor");
   const note = document.getElementById("fNote").value.trim();
 
   if(!point){ alert("観察地点を選んでください"); return; }
   if(!plantChip && !free){ alert("植物名を選ぶか、UNKNOWNを選んでください"); return; }
-  if(!color){ alert("花の色を選んでください"); return; }
+  if(!colors.length){ alert("花の色を選んでください"); return; }
   if(!note && !confirm("「気づいたこと」が空です。メモなしで保存しますか？")) return;
 
   const isUnknown = plantChip==="UNKNOWN" && !free;
@@ -876,13 +876,13 @@ async function saveObs(){
     o.identification_status = "field_identified";
     o.unknown_id = null;
   }
-  o.flower_color = color;
+  o.flower_color = colors;
   o.height_cm = h? Number(h) : null;
   o.height_method = hm==="実測"?"measured": hm==="目測"?"estimated": null;
-  o.flower_state = chipVal("fState");
-  o.growth_pattern = chipVal("fGrowth");
-  o.ground_moisture = chipVal("fGround");
-  o.environment = chipVal("fEnv");
+  o.flower_state = chipVals("fState");
+  o.growth_pattern = chipVals("fGrowth");
+  o.ground_moisture = chipVals("fGround");
+  o.environment = chipVals("fEnv");
   o.student_original_note = note;
   persist();
 
@@ -914,9 +914,9 @@ async function renderList(){
     const num = S.observations.indexOf(o)+1;
     const card = document.createElement("div");
     card.className = "card";
-    const meta = [pointName(o.point_id), o.flower_color,
+    const meta = [pointName(o.point_id), jv(o.flower_color),
       o.height_cm!=null? `草丈${o.height_cm}cm（${o.height_method==="measured"?"実測":"目測"}）`:null,
-      o.ground_moisture, o.growth_pattern].filter(Boolean).join(" ／ ");
+      jv(o.ground_moisture), jv(o.growth_pattern)].filter(Boolean).join(" ／ ");
     card.innerHTML = `
       <div class="obs">
         <div class="thumb" id="th_${o.observation_id}">写真<br>なし</div>
@@ -1176,9 +1176,10 @@ async function renderZukanPhotos(onlyIdx){
 function chipify(containerId, items, selected, single){
   const c = document.getElementById(containerId);
   c.innerHTML = "";
+  const sel = Array.isArray(selected) ? selected : (selected!=null ? [selected] : []);
   items.forEach(v=>{
     const b = document.createElement("button");
-    b.type="button"; b.className = "chip" + (v===selected? " on":"");
+    b.type="button"; b.className = "chip" + (sel.includes(v)? " on":"");
     b.textContent = v;
     b.onclick = ()=>{
       if(single){
@@ -1194,6 +1195,10 @@ function chipVal(containerId){
   const on = document.querySelector("#"+containerId+" .chip.on");
   return on ? on.textContent : null;
 }
+function chipVals(containerId){
+  return [...document.querySelectorAll("#"+containerId+" .chip.on")].map(c=>c.textContent);
+}
+function jv(v){ return Array.isArray(v) ? v.join("・") : (v||""); }
 function esc(s){ return String(s??"").replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m])); }
 
 /* ================= init ================= */
