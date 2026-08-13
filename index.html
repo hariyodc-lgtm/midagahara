@@ -1017,6 +1017,11 @@ function openZukan(fromForm){
   zukanFromForm = !!fromForm;
   const wrap = document.getElementById("zukanList");
   wrap.innerHTML = "";
+  const observed = new Set(S.observations.filter(o=>o.identification_status!=="unknown").map(o=>o.plant_name));
+  const head = document.createElement("div");
+  head.className = "hint"; head.style.margin = "0 2px 10px";
+  head.innerHTML = `観察できた植物：<b class="mono">${[...observed].filter(n=>PLANTS.includes(n)).length} / ${PLANTS.length}</b>（緑の名前 ✓ が観察済み）`;
+  wrap.appendChild(head);
   PLANTS.forEach((name,idx)=>{
     const info = PLANT_INFO[name]; if(!info) return;
     const card = document.createElement("div");
@@ -1025,7 +1030,7 @@ function openZukan(fromForm){
       <button type="button" style="width:100%;background:none;border:none;text-align:left;
         padding:14px 16px;font-family:inherit;cursor:pointer;display:flex;justify-content:space-between;align-items:center"
         onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display==='block'?'none':'block'">
-        <span><b style="font-size:1rem">${esc(name)}</b>
+        <span><b style="font-size:1rem;${observed.has(name)?"color:var(--moss)":""}">${observed.has(name)?"✓ ":""}${esc(name)}</b>
           <span style="font-size:.74rem;color:var(--sub);margin-left:6px">${esc(info.color)}・${esc(info.h)}</span></span>
         <span style="color:var(--moss);font-weight:800">▾</span>
       </button>
